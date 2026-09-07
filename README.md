@@ -96,11 +96,11 @@ rows will land in `invalid.txt` rather than `output.txt`.
 ## Project layout
 
 - `main.py` — entry point: reads input, batches requests, converts rows, writes output.
-- `clean.py` — removes generated output files (`data/*.txt` except `input.txt`) and cache directories (`__pycache__`, `.pytest_cache`, `.ruff_cache`).
+- `clean.py` — removes generated output files (everything in `data/` except `input.txt` and `input.sample.txt`) and cache directories (`__pycache__`, `.pytest_cache`, `.ruff_cache`).
 - `cli.py` — CLI flag parsing.
 - `file_io.py` — reading `data/input.txt` and writing the output files.
-- `ensembl_api.py` — calls the Ensembl API, with retry/backoff on rate limiting.
+- `ensembl_api.py` — calls the Ensembl API, retrying rate limiting, server errors and dropped connections with backoff.
 - `convert.py` — GRCh38 → GRCh37 conversion and genotype validation logic.
 - `logging_config.py` — logging setup.
-- `tests/` — unit tests for `convert.py` and `file_io.py`, using mock data (no network calls).
+- `tests/` — unit tests for `convert.py`, `file_io.py` and `ensembl_api.py`, using mock data and a faked HTTP session (no network calls).
 - `.github/workflows/ci.yml` — runs the formatter check, linter and tests on every push and PR.

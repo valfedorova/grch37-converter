@@ -3,7 +3,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_ROOT / "data"
-INPUT_FILENAME = "input.txt"
+# Everything else in data/ is generated and safe to remove. These two are
+# inputs: one is the user's own data, the other is committed to the repo.
+KEEP_FILENAMES = ("input.txt", "input.sample.txt")
 
 CACHE_DIR_NAMES = ("__pycache__", ".pytest_cache", ".ruff_cache")
 
@@ -23,7 +25,7 @@ def remove_generated_data_files() -> list[Path]:
 
     removed = []
     for path in DATA_DIR.iterdir():
-        if path.is_file() and path.name != INPUT_FILENAME:
+        if path.is_file() and path.name not in KEEP_FILENAMES:
             path.unlink()
             removed.append(path)
     return removed

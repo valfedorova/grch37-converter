@@ -47,7 +47,9 @@ def build_batches(rows: list[InputRow], batch_size: int) -> list[list[InputRow]]
     return [rows[i : i + batch_size] for i in range(0, len(rows), batch_size)]
 
 
-def fetch_variants(api_url: str, rsids: list[str], capture_headers: bool = False) -> dict:
+def fetch_variants(
+    api_url: str, rsids: list[str], capture_headers: bool = False
+) -> dict:
     for attempt in range(1, MAX_RETRIES + 1):
         response = _session.post(
             api_url,

@@ -1,4 +1,7 @@
-data/
+# Raw DNA data is personal data and is never committed. The only exception is
+# input.sample.txt, which contains public reference SNPs and no real genotypes.
+data/*
+!data/input.sample.txt
 .env
 __pycache__/
 *.pyc

@@ -6,8 +6,14 @@ from datetime import timedelta
 
 from cli import parse_args
 from convert import convert_row
-from ensembl_api import API_URL, BATCH_SIZE, build_batches, fetch_variants, get_rate_limit_info
-from file_io import ResultWriter, read_input_rows
+from ensembl_api import (
+    API_URL,
+    BATCH_SIZE,
+    build_batches,
+    fetch_variants,
+    get_rate_limit_info,
+)
+from file_io import INPUT_PATH, SAMPLE_INPUT_PATH, ResultWriter, read_input_rows
 from logging_config import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -17,11 +23,17 @@ def main() -> None:
     args = parse_args()
     configure_logging(args.log_level)
 
-    # read_input_rows raises ValueError if the input file's header doesn't
-    # have the columns we need; treat that as a user-facing config error
-    # rather than a crash.
+    # Both of these are user-facing setup mistakes (no input file, or a file
+    # whose header lacks the columns we need) rather than bugs, so report them
+    # as a message and a non-zero exit instead of a traceback.
     try:
         input_rows = read_input_rows()
+    except FileNotFoundError:
+        raise SystemExit(
+            f"No input file at {INPUT_PATH}.\n"
+            f"To try the tool on the bundled sample of public reference SNPs:\n"
+            f"    cp {SAMPLE_INPUT_PATH} {INPUT_PATH}"
+        )
     except ValueError as error:
         raise SystemExit(str(error))
     logger.info("Read %d input row(s)", len(input_rows))

@@ -7,6 +7,9 @@ from convert import InputRow, OutputRow, Status
 logger = logging.getLogger(__name__)
 
 INPUT_PATH = Path("data/input.txt")
+# A small, committed file of public reference SNPs, so the tool can be run
+# straight after cloning without supplying real DNA data.
+SAMPLE_INPUT_PATH = Path("data/input.sample.txt")
 OUTPUT_PATH = Path("data/output.txt")
 UNMAPPED_PATH = Path("data/unmapped.txt")
 INVALID_PATH = Path("data/invalid.txt")

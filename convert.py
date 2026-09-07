@@ -54,6 +54,14 @@ def is_genotype_valid(genotype: str, alleles: list[str]) -> bool:
     if any(len(allele) != 1 or allele == "-" for allele in alleles):
         return False
 
+    # An empty genotype would pass the all() below vacuously and be reported as
+    # a successful conversion. There is nothing to validate here, so it isn't
+    # one. (No assumption is made about how long a non-empty genotype should
+    # be: calls are diploid in most of the genome but single-base in others,
+    # and the distinction isn't ours to hard-code.)
+    if not genotype:
+        return False
+
     allowed_bases = set(alleles)
     return all(base in allowed_bases for base in genotype)
 

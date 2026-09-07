@@ -52,6 +52,24 @@ def test_is_genotype_valid_rejects_multi_character_alleles():
     assert is_genotype_valid("AG", ["AT", "GC"]) is False
 
 
+def test_is_genotype_valid_rejects_empty_genotype():
+    # There is nothing to check, so this must not pass vacuously and be
+    # reported as a successful conversion.
+    assert is_genotype_valid("", ["C", "T"]) is False
+
+
+def test_is_genotype_valid_accepts_a_single_base_call():
+    # Calls on the hemizygous parts of X/Y and on MT come back as one base.
+    assert is_genotype_valid("C", ["C", "T"]) is True
+
+
+def test_convert_row_with_empty_genotype_is_invalid_not_ok():
+    input_row = {"rsid": "rs1", "genotype": ""}
+    variant_data = make_variant_data([make_mapping(strand=1, allele_string="C/T")])
+
+    assert convert_row(input_row, variant_data)["status"] == Status.INVALID
+
+
 def test_is_genotype_valid_rejects_indel_style_alleles():
     # "-" marks "no sequence" (a deletion); it isn't a comparable base.
     assert is_genotype_valid("TT", ["T", "-"]) is False

@@ -87,6 +87,36 @@ def test_result_writer_splits_rows_by_status_with_different_columns(tmp_path):
     )
 
 
+def test_result_writer_discards_partial_output_when_run_fails(tmp_path):
+    output_path = tmp_path / "output.txt"
+    unmapped_path = tmp_path / "unmapped.txt"
+    invalid_path = tmp_path / "invalid.txt"
+
+    with pytest.raises(RuntimeError):
+        with ResultWriter(
+            {
+                Status.OK: output_path,
+                Status.UNMAPPED: unmapped_path,
+                Status.INVALID: invalid_path,
+            }
+        ) as writer:
+            writer.write(
+                {
+                    "rsid": "rs1",
+                    "chromosome": "1",
+                    "position": 100,
+                    "genotype": "CC",
+                    "status": Status.OK,
+                }
+            )
+            raise RuntimeError("simulated batch failure")
+
+    assert not output_path.exists()
+    assert not unmapped_path.exists()
+    assert not invalid_path.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_result_writer_summary_reports_counts_and_paths(tmp_path):
     output_path = tmp_path / "output.txt"
     unmapped_path = tmp_path / "unmapped.txt"

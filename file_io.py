@@ -1,6 +1,10 @@
+import logging
+import os
 from pathlib import Path
 
 from convert import InputRow, OutputRow, Status
+
+logger = logging.getLogger(__name__)
 
 INPUT_PATH = Path("data/input.txt")
 OUTPUT_PATH = Path("data/output.txt")
@@ -56,15 +60,24 @@ STATUS_LABELS = {
 
 class ResultWriter:
     """Streams conversion results straight to disk, split by status, instead
-    of holding the whole result set in memory for one write at the end."""
+    of holding the whole result set in memory for one write at the end.
+
+    Writes go to temp files alongside the real output paths; the real paths
+    are only created (via atomic rename) if the whole run finishes without
+    error, so a run that crashes partway through never leaves a partial
+    output file that looks like a complete one."""
 
     def __init__(
         self, paths_by_status: dict[Status, Path] = DEFAULT_OUTPUT_PATHS_BY_STATUS
     ):
         self.paths = paths_by_status
-        self._files = {
-            status: path.open("w", encoding="utf-8")
+        self._temp_paths = {
+            status: path.with_name(path.name + ".tmp")
             for status, path in paths_by_status.items()
+        }
+        self._files = {
+            status: temp_path.open("w", encoding="utf-8")
+            for status, temp_path in self._temp_paths.items()
         }
         self.counts: dict[Status, int] = {status: 0 for status in paths_by_status}
         for status, file in self._files.items():
@@ -90,8 +103,26 @@ class ResultWriter:
         for file in self._files.values():
             file.close()
 
+    def _commit(self) -> None:
+        # Same directory as the real path, so this is an atomic rename
+        # rather than a cross-filesystem copy.
+        for status, temp_path in self._temp_paths.items():
+            os.replace(temp_path, self.paths[status])
+
+    def _discard(self) -> None:
+        for temp_path in self._temp_paths.values():
+            temp_path.unlink(missing_ok=True)
+        logger.error(
+            "Run failed before completion; no output files were written "
+            "(partial results discarded)."
+        )
+
     def __enter__(self) -> "ResultWriter":
         return self
 
-    def __exit__(self, *exc_info) -> None:
+    def __exit__(self, exc_type, *exc_info) -> None:
         self.close()
+        if exc_type is None:
+            self._commit()
+        else:
+            self._discard()

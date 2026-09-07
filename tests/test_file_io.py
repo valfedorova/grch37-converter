@@ -21,6 +21,21 @@ def test_read_input_rows_finds_columns_by_name_in_any_order(tmp_path):
     ]
 
 
+def test_read_input_rows_skips_blank_lines(tmp_path):
+    input_path = tmp_path / "input.txt"
+    input_path.write_text(
+        "rsid\tgenotype\nrs9701055\tCC\n\n   \nrs9701872\tTT\n\n",
+        encoding="utf-8",
+    )
+
+    rows = read_input_rows(input_path)
+
+    assert rows == [
+        {"rsid": "rs9701055", "genotype": "CC"},
+        {"rsid": "rs9701872", "genotype": "TT"},
+    ]
+
+
 def test_read_input_rows_raises_when_rsid_column_missing(tmp_path):
     input_path = tmp_path / "input.txt"
     input_path.write_text(

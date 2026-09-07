@@ -46,11 +46,11 @@ def read_input_rows(input_path: Path = INPUT_PATH) -> list[InputRow]:
         indices = _find_column_indices(header, REQUIRED_COLUMNS)
 
         return [
-            {
-                column: line.rstrip("\n").split("\t")[index]
-                for column, index in indices.items()
-            }
-            for line in input_file
+            {column: fields[index] for column, index in indices.items()}
+            for fields in (line.rstrip("\n").split("\t") for line in input_file)
+            # Blank lines (trailing newline at end of file, or separators
+            # inside it) carry no data, so skip them rather than crash.
+            if any(field.strip() for field in fields)
         ]
 
 

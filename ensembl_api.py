@@ -25,6 +25,21 @@ _adapter = requests.adapters.HTTPAdapter(pool_maxsize=50)
 _session.mount("https://", _adapter)
 _session.mount("http://", _adapter)
 
+# Populated from the last batch's response (see fetch_variants'
+# capture_headers arg) so callers can report rate-limit usage at the end of
+# a run.
+_last_response_headers: dict[str, str] = {}
+
+
+def get_rate_limit_info() -> dict[str, str]:
+    """Return any rate-limit-related headers from the last batch's response,
+    e.g. X-RateLimit-Limit/-Remaining/-Reset/-Period."""
+    return {
+        name: value
+        for name, value in _last_response_headers.items()
+        if "ratelimit" in name.lower()
+    }
+
 
 def build_batches(rows: list[InputRow], batch_size: int) -> list[list[InputRow]]:
     """Split rows into request-sized chunks. `batch_size` should not exceed
@@ -32,7 +47,7 @@ def build_batches(rows: list[InputRow], batch_size: int) -> list[list[InputRow]]
     return [rows[i : i + batch_size] for i in range(0, len(rows), batch_size)]
 
 
-def fetch_variants(api_url: str, rsids: list[str]) -> dict:
+def fetch_variants(api_url: str, rsids: list[str], capture_headers: bool = False) -> dict:
     for attempt in range(1, MAX_RETRIES + 1):
         response = _session.post(
             api_url,
@@ -55,5 +70,8 @@ def fetch_variants(api_url: str, rsids: list[str]) -> dict:
             continue
 
         response.raise_for_status()
+        if capture_headers:
+            _last_response_headers.clear()
+            _last_response_headers.update(response.headers)
         logger.debug("Fetched %d variant(s)", len(rsids))
         return response.json()

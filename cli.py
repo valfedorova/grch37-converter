@@ -15,4 +15,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="send only the first batch and print the result",
     )
+    parser.add_argument(
+        "--max-workers",
+        type=int,
+        default=20,
+        help="number of batch requests to run concurrently (default: 20)",
+    )
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        help="Python logging level, e.g. INFO, DEBUG (default: INFO)",
+    )
     return parser.parse_args()

@@ -1,11 +1,9 @@
 import logging
-import os
 
 
-def configure_logging() -> None:
-    level_name = os.environ.get("LOG_LEVEL", "INFO").strip().upper()
+def configure_logging(level_name: str = "INFO") -> None:
     logging.basicConfig(
-        level=level_name,
+        level=level_name.strip().upper(),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )

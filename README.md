@@ -14,7 +14,6 @@ rsid/genotype file and converts it to GRCh37 coordinates so it can be uploaded t
 
 ```
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
 For running the tests and linter/formatter:
@@ -34,10 +33,12 @@ ruff check .    # lint
 ## Running
 
 ```
-python main.py                 # full run: reads data/input.txt, writes the output files below
-python main.py --dry-run       # report how many requests would be sent, no API calls
-python main.py --single-batch  # send only the first batch, print the result, still write output
-python clean.py                # remove generated output files and cache directories
+python main.py                    # full run: reads data/input.txt, writes the output files below
+python main.py --dry-run          # report how many requests would be sent, no API calls
+python main.py --single-batch     # send only the first batch, print the result, still write output
+python main.py --max-workers 30   # tune how many batch requests run concurrently (default: 20)
+python main.py --log-level DEBUG  # change log verbosity (default: INFO)
+python clean.py                   # remove generated output files and cache directories
 ```
 
 ## Output
@@ -67,15 +68,6 @@ didn't match:
 |----------------|----------------------------------------------------------------------------|
 | allele_string  | the GRCh37 mapping's raw `allele_string` (as returned by Ensembl, before any reverse-complementing) |
 | var_class      | the variant's `var_class` (e.g. `SNP`, `indel`, `deletion`)                 |
-
-## Configuration (`.env`)
-
-| variable              | meaning                                              |
-|-----------------------|-------------------------------------------------------|
-| `API_URL`              | Ensembl variation endpoint                            |
-| `BATCH_SIZE`           | rsids per API request (Ensembl max is 200)             |
-| `REQUEST_DELAY_SECONDS`| delay between successive batch requests                |
-| `LOG_LEVEL`            | Python logging level (e.g. `INFO`, `DEBUG`)            |
 
 ## Project layout
 

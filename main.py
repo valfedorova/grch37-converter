@@ -1,13 +1,10 @@
 import json
 import logging
-import os
-import time
-
-from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
 
 from cli import parse_args
 from convert import convert_row
-from ensembl_api import build_batches, fetch_variants
+from ensembl_api import API_URL, BATCH_SIZE, build_batches, fetch_variants
 from file_io import ResultWriter, read_input_rows
 from logging_config import configure_logging
 
@@ -16,12 +13,7 @@ logger = logging.getLogger(__name__)
 
 def main() -> None:
     args = parse_args()
-    load_dotenv()
-    configure_logging()
-
-    api_url = os.environ["API_URL"]
-    batch_size = int(os.environ["BATCH_SIZE"])
-    request_delay_seconds = float(os.environ["REQUEST_DELAY_SECONDS"])
+    configure_logging(args.log_level)
 
     # read_input_rows raises ValueError if the input file's header doesn't
     # have the columns we need; treat that as a user-facing config error
@@ -32,7 +24,7 @@ def main() -> None:
         raise SystemExit(str(error))
     logger.info("Read %d input row(s)", len(input_rows))
 
-    batches = build_batches(input_rows, batch_size)
+    batches = build_batches(input_rows, BATCH_SIZE)
 
     if args.dry_run:
         request_count = len(batches)
@@ -50,27 +42,33 @@ def main() -> None:
     # normally hold converted rows in memory.
     single_batch_rows = []
 
-    with ResultWriter() as writer:
-        for batch_number, batch in enumerate(batches, start=1):
-            rsids = [row["rsid"] for row in batch]
+    with (
+        ResultWriter() as writer,
+        ThreadPoolExecutor(max_workers=args.max_workers) as executor,
+    ):
+        # executor.map keeps results in submission order even though the
+        # underlying requests run concurrently, so batches are still
+        # written in input order.
+        results = executor.map(
+            lambda batch: fetch_variants(API_URL, [row["rsid"] for row in batch]),
+            batches,
+        )
+
+        for batch_number, (batch, variant_data_by_rsid) in enumerate(
+            zip(batches, results), start=1
+        ):
             logger.info(
-                "Fetching batch %d/%d (%d rsid(s))",
+                "Processing batch %d/%d (%d rsid(s))",
                 batch_number,
                 len(batches),
-                len(rsids),
+                len(batch),
             )
-            variant_data_by_rsid = fetch_variants(api_url, rsids)
 
             for row in batch:
                 output_row = convert_row(row, variant_data_by_rsid.get(row["rsid"]))
                 writer.write(output_row)
                 if args.single_batch:
                     single_batch_rows.append(output_row)
-
-            # Be polite to the API between requests; skip after the last
-            # batch since there's nothing left to wait for.
-            if batch_number < len(batches):
-                time.sleep(request_delay_seconds)
 
         if args.single_batch:
             print(json.dumps(single_batch_rows, indent=2))

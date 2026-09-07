@@ -7,13 +7,23 @@ from convert import InputRow
 
 logger = logging.getLogger(__name__)
 
+API_URL = "https://grch37.rest.ensembl.org/variation/homo_sapiens/"
+
+# Ensembl's hard limit on ids per POST request to this endpoint.
+BATCH_SIZE = 200
+
 MAX_RETRIES = 3
 RETRY_BACKOFF_SECONDS = 2
 REQUEST_TIMEOUT_SECONDS = 30
 
 # Shared across requests (and threads) so repeated calls reuse pooled
 # connections instead of paying a new TCP/TLS handshake every batch.
+# pool_maxsize is sized generously so concurrent threads don't queue up
+# waiting for a free connection (requests' default pool is only 10).
 _session = requests.Session()
+_adapter = requests.adapters.HTTPAdapter(pool_maxsize=50)
+_session.mount("https://", _adapter)
+_session.mount("http://", _adapter)
 
 
 def build_batches(rows: list[InputRow], batch_size: int) -> list[list[InputRow]]:

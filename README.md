@@ -69,6 +69,16 @@ didn't match:
 | allele_string  | the GRCh37 mapping's raw `allele_string` (as returned by Ensembl, before any reverse-complementing) |
 | var_class      | the variant's `var_class` (e.g. `SNP`, `indel`, `deletion`)                 |
 
+## Notes
+
+Tested on two real-world raw DNA data files; a typical run converts the large majority of rows
+successfully (e.g. one run mapped 665,193 of 675,520 rows — about 98.5% — in ~8 minutes), with a
+small number ending up in `unmapped.txt` or `invalid.txt`.
+
+Known limitation: indel genotypes reported in `I`/`D` notation (e.g. `II`, `DD`, `DI`, as used by
+some raw data providers) won't match the GRCh37 `allele_string`, which uses actual bases — these
+rows will land in `invalid.txt` rather than `output.txt`.
+
 ## Project layout
 
 - `main.py` — entry point: reads input, batches requests, converts rows, writes output.

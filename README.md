@@ -62,7 +62,7 @@ the file it ends up in *is* the status, so there's no separate status column:
 | file                 | meaning                                                              |
 |----------------------|-----------------------------------------------------------------------|
 | `data/output.txt`    | successfully converted rows                                           |
-| `data/unmapped.txt`  | no GRCh37 mapping was returned for this rsid                          |
+| `data/unmapped.txt`  | no usable GRCh37 mapping for this rsid — either none was returned at all, or the only ones returned are on patch scaffolds or alt haplotypes (see Notes) |
 | `data/invalid.txt`   | a GRCh37 mapping was found, but the input genotype's bases don't match the GRCh37 alleles (after reverse-complementing them if the mapping is on the `-1` strand) |
 
 `output.txt` and `unmapped.txt` share the same columns:
@@ -94,6 +94,14 @@ those rows are reported in `unmapped.txt` instead.
 Tested on two real-world raw DNA data files; a typical run converts the large majority of rows
 successfully (e.g. one run mapped 665,193 of 675,520 rows — about 98.5% — in ~8 minutes), with a
 small number ending up in `unmapped.txt` or `invalid.txt`.
+
+Ensembl maps some variants onto patch scaffolds (e.g. `HG79_PATCH`) or alt haplotypes (e.g.
+`HSCHR6_MHC_COX`) as well as onto a real chromosome. These are alternative representations of a
+locus rather than separate places in the genome, and their coordinates mean nothing to tools that
+only know about real chromosomes, so only a mapping onto `1`–`22`, `X`, `Y` or `MT` counts as a
+conversion. Ensembl doesn't always list that mapping first, and a variant that has no primary
+mapping at all is reported in `unmapped.txt` rather than given a position nothing downstream can
+use.
 
 Known limitation: indel genotypes reported in `I`/`D` notation (e.g. `II`, `DD`, `DI`, as used by
 some raw data providers) won't match the GRCh37 `allele_string`, which uses actual bases — these

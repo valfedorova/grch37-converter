@@ -28,14 +28,88 @@ def test_reverse_complement_pairs():
 
 
 def test_find_grch37_mapping_picks_matching_assembly():
-    grch38_mapping = {"assembly_name": "GRCh38"}
-    grch37_mapping = {"assembly_name": "GRCh37"}
+    grch38_mapping = {"assembly_name": "GRCh38", "seq_region_name": "1"}
+    grch37_mapping = make_mapping()
     assert find_grch37_mapping([grch38_mapping, grch37_mapping]) is grch37_mapping
 
 
 def test_find_grch37_mapping_returns_none_when_absent():
-    assert find_grch37_mapping([{"assembly_name": "GRCh38"}]) is None
+    assert (
+        find_grch37_mapping([{"assembly_name": "GRCh38", "seq_region_name": "1"}])
+        is None
+    )
     assert find_grch37_mapping([]) is None
+
+
+def test_find_grch37_mapping_prefers_a_primary_chromosome_over_a_patch():
+    # Ensembl often returns the patch scaffold first. Its coordinates are on
+    # an alternative representation of the locus and mean nothing to tools
+    # that only know real chromosomes, so the primary mapping must win
+    # regardless of the order the mappings arrive in.
+    patch = make_mapping(seq_region_name="HG989_PATCH", start=31953001)
+    primary = make_mapping(seq_region_name="1", start=31953000)
+
+    assert find_grch37_mapping([patch, primary]) is primary
+
+
+def test_find_grch37_mapping_prefers_a_primary_chromosome_over_alt_haplotypes():
+    haplotype = make_mapping(seq_region_name="HSCHR6_MHC_COX", start=31265412)
+    primary = make_mapping(seq_region_name="6", start=31274380)
+
+    assert find_grch37_mapping([haplotype, primary]) is primary
+
+
+def test_find_grch37_mapping_accepts_the_sex_and_mitochondrial_chromosomes():
+    for seq_region_name in ("X", "Y", "MT"):
+        patch = make_mapping(seq_region_name="HG989_PATCH")
+        primary = make_mapping(seq_region_name=seq_region_name)
+        assert find_grch37_mapping([patch, primary]) is primary
+
+
+def test_find_grch37_mapping_returns_none_when_only_a_patch_is_available():
+    # A patch coordinate isn't a conversion: no tool downstream can use it,
+    # so the variant counts as unmapped rather than converted.
+    patch = make_mapping(seq_region_name="HG989_PATCH", start=31953001)
+
+    assert find_grch37_mapping([patch]) is None
+
+
+def test_find_grch37_mapping_ignores_a_primary_mapping_on_another_assembly():
+    grch38_primary = {"assembly_name": "GRCh38", "seq_region_name": "1"}
+    grch37_patch = make_mapping(seq_region_name="HG989_PATCH")
+
+    assert find_grch37_mapping([grch38_primary, grch37_patch]) is None
+
+
+def test_convert_row_reports_a_patch_only_variant_as_unmapped():
+    input_row = {"rsid": "rs649129", "genotype": "TT"}
+    variant_data = make_variant_data(
+        [make_mapping(seq_region_name="HG79_PATCH", start=136154395)]
+    )
+
+    output_row = convert_row(input_row, variant_data)
+
+    assert output_row["status"] == Status.UNMAPPED
+    assert output_row["chromosome"] == ""
+    assert output_row["position"] == ""
+
+
+def test_convert_row_reports_the_primary_position_not_the_patch_one():
+    # The bug this guards against: a row reaching output.txt with
+    # chromosome "HG989_PATCH" and a coordinate no downstream tool can use.
+    input_row = {"rsid": "rs114619523", "genotype": "CC"}
+    variant_data = make_variant_data(
+        [
+            make_mapping(seq_region_name="HG989_PATCH", start=31953001),
+            make_mapping(seq_region_name="1", start=31953000),
+        ]
+    )
+
+    output_row = convert_row(input_row, variant_data)
+
+    assert output_row["chromosome"] == "1"
+    assert output_row["position"] == 31953000
+    assert output_row["status"] == Status.OK
 
 
 def test_is_genotype_valid():

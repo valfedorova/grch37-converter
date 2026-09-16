@@ -26,9 +26,26 @@ class OutputRow(TypedDict, total=False):
 GRCH37_ASSEMBLY_NAME = "GRCh37"
 
 
+# The chromosomes of the primary GRCh37 assembly. Ensembl also maps variants
+# onto patch scaffolds (e.g. "HG989_PATCH") and alt haplotypes (e.g.
+# "HSCHR6_MHC_COX"), which are alternative representations of a locus rather
+# than separate places in the genome. Their coordinates mean nothing to tools
+# that only know about real chromosomes, so only a mapping onto one of these
+# counts as a conversion. Ensembl doesn't guarantee that it lists the primary
+# mapping first, so it has to be selected by name rather than by position; a
+# variant that has no primary mapping at all is reported as unmapped rather
+# than given a position no downstream tool can use.
+PRIMARY_SEQ_REGION_NAMES = frozenset(
+    [str(number) for number in range(1, 23)] + ["X", "Y", "MT"]
+)
+
+
 def find_grch37_mapping(mappings: list[dict]) -> dict | None:
     for mapping in mappings:
-        if mapping.get("assembly_name") == GRCH37_ASSEMBLY_NAME:
+        if (
+            mapping.get("assembly_name") == GRCH37_ASSEMBLY_NAME
+            and mapping.get("seq_region_name") in PRIMARY_SEQ_REGION_NAMES
+        ):
             return mapping
     return None
 

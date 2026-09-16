@@ -32,13 +32,12 @@ ruff check .    # lint
 `data/input.txt` — tab-separated, with a header row. Must contain at least `rsid` and
 `genotype` columns (any order, case-insensitive); other columns are ignored.
 
-Real raw DNA data is personal data and isn't committed here. To try the tool without it,
-`data/input.sample.txt` holds 22 rows built only from public reference variants — 20
-well-known SNPs (`rs53576`/OXTR, `rs4988235`/lactase persistence, `rs429358` and `rs7412`/APOE,
-`rs12913832`/eye colour, and similar textbook examples), plus `rs113993960` (CFTR F508del) to
-show the indel limitation described below and a nonexistent rsid to show an unmapped row. The
-genotypes are made-up combinations of each variant's actual reference alleles, not anyone's
-calls. Copy it into place to run:
+To try the tool without real data, use `data/input.sample.txt` — it holds 22 rows built only
+from public reference variants — 20 well-known SNPs (`rs53576`/OXTR, `rs4988235`/lactase
+persistence, and similar textbook examples), plus `rs113993960` (CFTR F508del) to show the
+indel limitation described below and a nonexistent rsid to show an unmapped row. The genotypes
+are made-up combinations of each variant's actual reference alleles, not anyone's calls. Copy
+it into place to run:
 
 ```
 cp data/input.sample.txt data/input.txt

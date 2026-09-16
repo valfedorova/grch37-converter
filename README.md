@@ -84,6 +84,13 @@ didn't match:
 
 ## Notes
 
+Conversion is done by looking each rsid up in the GRCh37 assembly rather than by lifting
+coordinates over from GRCh38. This follows UCSC's
+[recommendation](https://genome.ucsc.edu/FAQ/FAQreleases.html#snpConversion): LiftOver is not
+reliable for regions as small as a single base, whereas rsids are stable across assemblies.
+UCSC suggests falling back to LiftOver for rsids the lookup doesn't find; this tool doesn't —
+those rows are reported in `unmapped.txt` instead.
+
 Tested on two real-world raw DNA data files; a typical run converts the large majority of rows
 successfully (e.g. one run mapped 665,193 of 675,520 rows — about 98.5% — in ~8 minutes), with a
 small number ending up in `unmapped.txt` or `invalid.txt`.
